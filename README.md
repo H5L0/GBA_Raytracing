@@ -12,15 +12,15 @@ Raytracing in Gameboy Advance.
 
 #### 截图
 ![screenshot_40](https://raw.githubusercontent.com/H5L0/GBA_Raytracing/master/images/GBA_RayTracing-40.png "screenshot_40")
-![screenshot_53](https://raw.githubusercontent.com/H5L0/GBA_Raytracing/images/GBA_RayTracing-53.png "screenshot_53")
-![screenshot_78](https://raw.githubusercontent.com/H5L0/GBA_Raytracing/images/GBA_RayTracing-78.png "screenshot_78")
+![screenshot_53](https://raw.githubusercontent.com/H5L0/GBA_Raytracing/master/images/GBA_RayTracing-53.png "screenshot_53")
+![screenshot_78](https://raw.githubusercontent.com/H5L0/GBA_Raytracing/master/images/GBA_RayTracing-78.png "screenshot_78")
 
 #### GBA硬件性能:
-*16.78MHz CPU
-*32KB内部工作内存
-*256KB外部内存
+* 16.78MHz CPU
+* 32KB内部工作内存
+* 256KB外部内存
 
 #### 程序性能：
-*简单场景：150s/frame
-*250面场景：1000-5000s/frame
-*500面场景：45min/frame
+* 简单场景：150s/frame
+* 250面场景：1000-5000s/frame
+* 500面场景：45min/frame
