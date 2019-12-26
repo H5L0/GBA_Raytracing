@@ -2,43 +2,30 @@
 #include "RT_define.h"
 #include "Material.h"
 
-//ÒòÎªÊÇµ¥Ïß³Ì³ÌĞò£¬Ê¹ÓÃÈ«¾Ö±äÁ¿À´¼õÉÙÔËĞĞÊ±¶¨Òå±äÁ¿
-//µ«ĞèÒª×¢ÒâÇ¶Ì×º¯ÊıÇ°ºóÎÄ¸²¸Ç
-//HitPoint hit_1;
-//HitPoint hit_2;
-//HitPoint hit_3;
-//HitPoint *out_hit = &hit_1;	//Ö¸Ïò»÷ÖĞµãĞÅÏ¢µÄÖ¸Õë
-//HitPoint *ns_hit = &hit_2;		//Ö¸Ïò×î½ü»÷ÖĞµãĞÅÏ¢µÄÖ¸Õë
-//HitPoint *light_hit = &hit_3;	//Ö¸ÏòµÆ¹â¼ì²â»÷ÖĞµãĞÅÏ¢µÄÖ¸Õë
-
-//**staticĞŞÊÎÈ«¾Ö±äÁ¿»áÏŞ¶¨ÔÚ´ËÎÄ¼ş·¶Î§ÄÚ
-
-
 Color Trace(Scene *sc, Ray *ray)
 {
 	if (ray->depth++ > 5) return _color_black;
 
 	Entity *ptet;
 
-	//***ÊÔÊÔ¾Ö²¿±äÁ¿
+	//***è¯•è¯•å±€éƒ¨å˜é‡
 	HitPoint hit_1;
 	HitPoint hit_2;
 	hit_1.quickCheck = FALSE;
 	hit_2.quickCheck = FALSE;
-	HitPoint *out_hit = &hit_1;		//Ö¸Ïò»÷ÖĞµãĞÅÏ¢µÄÖ¸Õë
-	HitPoint *ns_hit = &hit_2;		//Ö¸Ïò×î½ü»÷ÖĞµãĞÅÏ¢µÄÖ¸Õë
+	HitPoint *out_hit = &hit_1;		//æŒ‡å‘å‡»ä¸­ç‚¹ä¿¡æ¯çš„æŒ‡é’ˆ
+	HitPoint *ns_hit = &hit_2;		//æŒ‡å‘æœ€è¿‘å‡»ä¸­ç‚¹ä¿¡æ¯çš„æŒ‡é’ˆ
 
 	ns_hit->distance = FP32_MAX;
 	Bool haveHit = FALSE;
-	//±éÀúÎïÌåºÍµÆ¹â
-	//#pragma loop(hint_parallel(8))
+	//éå†ç‰©ä½“å’Œç¯å…‰
 	for (int i = 0; i < sc->totalCount; i++)
 	{
 		ptet = &sc->entities[i];
-		//´ËÎïÌåÊÇ·ñÒÑ¿ªÆôÇÒ¿É¼û
+		//æ­¤ç‰©ä½“æ˜¯å¦å·²å¼€å¯ä¸”å¯è§
 		if (NOFLAG(ptet->property, EP_Enable)) continue;
 		if (NOFLAG(ptet->property, EP_Visable)) continue;
-		//Í¨¹ıÖ¸Õëµ÷ÓÃ¹âÏßÍ¶Éäº¯Êı
+		//é€šè¿‡æŒ‡é’ˆè°ƒç”¨å…‰çº¿æŠ•å°„å‡½æ•°
 		if (ptet->ptShape->fc->Raycast(ptet, ray, out_hit))
 		{
 			if (out_hit->distance < ns_hit->distance)
@@ -50,117 +37,33 @@ Color Trace(Scene *sc, Ray *ray)
 			}
 		}
 	}
-
+	
 	if (haveHit) return (*(ns_hit->et->ptMaterial->Shade))(sc, ns_hit, ray);
 	else return sc->GetSkyColor(&ray->direction);
 }
 
-
-Color _GetLightIrradiant(Scene *sc, HitPoint *hit)
-{
-	EntityProperty et_property = hit->et->property;
-	Entity *ptLight, *ptEntity;
-	Ray lray;
-	OffsetHitPoint(&lray.start, hit);
-	HitPoint hit_4;
-	HitPoint *light_hit = &hit_4;
-	light_hit->quickCheck = TRUE;
-
-	//fp16 AO = GetAmbientIllumination(sc, hit)>>1;
-	//Color lightResult = { AO, AO, AO };
-	Color lightResult = sc->ambientLightColor;
-	fp32 distance2;
-
-	//±éÀúµÆ¹â
-	for (int i = sc->objectCount; i < sc->totalCount; i++)
-	{
-		ptLight = &sc->entities[i];
-		if (NOFLAG(ptLight->property, EP_Enable)) continue;
-
-		distance2 = xyz_len2(xyz_sub(&lray.direction, &ptLight->transform->position, &lray.start));
-		xyz_normalize(&lray.direction);
-
-		//×ÅÉ«ÎïÌå½ÓÊÜÒõÓ°
-		if (HASFLAG(et_property, EP_ReceiveShadows))
-		{
-			//±éÀúÎïÌå
-			for (int k = 0; k < sc->objectCount; k++)
-			{
-				ptEntity = &sc->entities[k];
-
-				//Ìø¹ıÎïÌå×ÔÉíÒõÓ°
-				if (ptEntity == hit->et && NOFLAG(et_property, EP_ReceiveSelfShadow)) continue;
-
-				//´ËÎïÌåÍ¶ÉäÒõÓ°
-				if (HASFLAGS(ptEntity->property, EP_Visable | EP_CastShadows))
-				{
-					//¶ÔÎïÌåÉäÏß¼ì²â¡£ns_hitÕıÔÚÊ¹ÓÃ£¬out_hitÒÑ¿Õ³ö£¬µ«²»°²È«¡£Òò´ËÁíÍâÊ¹ÓÃlight_hit
-					if ((*(ptEntity->ptShape->fc->Raycast))(ptEntity, &lray, light_hit))
-					{
-						//Èç¹ûÅö×²µ½ÎïÌå£¬²»¼ÆËã¹âÕÕ£¬Ìø×ªµ½ÏÂÒ»¸öµÆ¹â
-						goto nextLight;
-					}
-				}
-			}
-		}
-
-		//Ôö¼Ó´ËµÆ¹âÕÕ
-		//sr:fp32
-		s64 sr = xyz_dot(&lray.direction, &hit->normal);
-		if (sr <= 0) continue;
-
-		MT_Light *mt = (MT_Light *)ptLight->ptMaterial;
-		//sr:fp32 ¹âÕÕÇ¿¶È
-		sr = ((sr * mt->intensity) << FP32_FBIT) / distance2;
-		if (sr > FP32_1 * 8) sr = FP32_1 * 8;
-
-		lightResult.r += (fp16)((sr * mt->color.r) >> FP32_FBIT);
-		lightResult.g += (fp16)((sr * mt->color.g) >> FP32_FBIT);
-		lightResult.b += (fp16)((sr * mt->color.b) >> FP32_FBIT);
-
-		//sr = fp32_div64(sr * mt->intensity, distance2);
-		//fp32 * fp16
-		//lightResult.r += fp32_mul64(sr, mt->color.r);
-		//lightResult.g += fp32_mul64(sr, mt->color.g);
-		//lightResult.b += fp32_mul64(sr, mt->color.b);
-
-		// 31bit + 27bit - 31bit - 10bit = 17bit
-		// [r]bit + 27bit - [d]bit -10bit = [0,36]bit
-		//sr = ((((u64)sr) << FP32_FBIT ) / distance2) >> (FP32_FBIT - FP16_FBIT);
-		//if (sr > ((1 << 17) - 1)) sr = (1 << 17) - 1;
-		//14bit + 17bit = 31bit
-		//lightResult.x += ((color->x >> 2) * sr) >> 15;
-		//lightResult.y += ((color->y >> 2) * sr) >> 15;
-		//lightResult.z += ((color->z >> 2) * sr) >> 15;
-
-		nextLight:;
-	}
-
-	return lightResult;
-}
-
+//è®¡ç®—ï¼ˆç›´æ¥ï¼‰å…‰ç…§
 Color GetLightIrradiant(Scene *sc, HitPoint *hit)
 {
-	//fp16 AO = GetAmbientIllumination(sc, hit)>>1;
+	//fp16 AO = GetAmbientIllumination(sc, hit);
 	//Color lightResult = { AO, AO, AO };
 	Color lightResult = sc->ambientLightColor;
 
-	//±éÀúµÆ¹â
+	//éå†ç¯å…‰
 	Entity *ptLight;
-	//#pragma loop(hint_parallel(8))
 	for (int i = sc->objectCount; i < sc->totalCount; i++)
 	{
 		ptLight = &sc->entities[i];
 		if (NOFLAG(ptLight->property, EP_Enable)) continue;
 
 		Color result = ptLight->ptShape->fc->light(sc, ptLight, hit);
-
 		color_add(&lightResult, &lightResult, &result);
 	}
 	return lightResult;
 }
 
 /*
+//å…¨å±€å…‰ç…§å›ºå®šç¯å…‰
 Vector3 SkyLightDirections[160];
 int skyLightAmount = 0;
 Vector3 *GetSkyLights()
@@ -189,7 +92,7 @@ Vector3 *GetSkyLights()
 
 fp16 GetAmbientIllumination(Scene *sc, HitPoint *hit)
 {
-	//×ÅÉ«ÎïÌå²»½ÓÊÜÒõÓ°
+	//ç€è‰²ç‰©ä½“ä¸æ¥å—é˜´å½±
 	if (NOFLAG(hit->et->property, EP_ReceiveShadows)) return FP16_1;
 
 	Entity *ptEntity;
@@ -204,16 +107,16 @@ fp16 GetAmbientIllumination(Scene *sc, HitPoint *hit)
 	for (int i = 0; i < skyLightAmount; i++)
 	{
 		lray.direction = SkyLightDirections[i];
-		//±éÀúÎïÌå
+		//éå†ç‰©ä½“
 		for (int k = 0; k < sc->objectCount; k++)
 		{
 			ptEntity = &sc->entities[k];
-			//´ËÎïÌåÍ¶ÉäÒõÓ°
+			//æ­¤ç‰©ä½“æŠ•å°„é˜´å½±
 			if (NOFLAG(hit->et->property, EP_CastShadows)) continue;
-			//¶ÔÎïÌåÉäÏß¼ì²â
+			//å¯¹ç‰©ä½“å°„çº¿æ£€æµ‹
 			if ((*(ptEntity->ptShape->fc->Raycast))(ptEntity, &lray, light_hit))
 			{
-				//Èç¹ûÅö×²µ½ÎïÌå£¬²»¼ÆËã¹âÕÕ£¬Ìø×ªµ½ÏÂÒ»¸öµÆ¹â
+				//å¦‚æœç¢°æ’åˆ°ç‰©ä½“ï¼Œä¸è®¡ç®—å…‰ç…§ï¼Œè·³è½¬åˆ°ä¸‹ä¸€ä¸ªç¯å…‰
 				goto nextPoint;
 			}
 		}
